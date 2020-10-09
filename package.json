@@ -31,10 +31,11 @@
   },
   "homepage": "https://github.com/Lakitna/gemini-test#readme",
   "dependencies": {
-    "google-spreadsheet": "^3.0.13",
     "commander": "^6.1.0",
-    "make-promises-safe": "^5.1.0",
-    "lodash": "^4.17.20"
+    "google-spreadsheet": "^3.0.13",
+    "got": "^11.7.0",
+    "lodash": "^4.17.20",
+    "make-promises-safe": "^5.1.0"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^3.3.1",
