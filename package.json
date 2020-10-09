@@ -3,6 +3,9 @@
   "version": "0.0.0-POC",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "gemini": "src/cli/index.js"
+  },
   "scripts": {
     "test": "mocha",
     "test:ci": "npm run test -- --forbid-only",
