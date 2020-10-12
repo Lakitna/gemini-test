@@ -35,7 +35,9 @@
     "google-spreadsheet": "^3.0.13",
     "got": "^11.7.0",
     "lodash": "^4.17.20",
-    "make-promises-safe": "^5.1.0"
+    "make-promises-safe": "^5.1.0",
+    "minimatch": "^3.0.4",
+    "qs": "^6.9.4"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^3.3.1",
