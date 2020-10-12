@@ -1,13 +1,14 @@
 const _ = require('lodash');
 const { GoogleSpreadsheet, GoogleSpreadsheetRow } = require('google-spreadsheet');
 
-const CREDENTIALS = require('../../../google-credentials.json');
+const SHEET_ID = '1tQLGSWgCOzJ5oz3unNpYD9b1GEh6ut24GnH0MlW1hJs';
+const CREDENTIALS = require('../../../../google-credentials.json');
 
 /**
- * @param {string} id
+ * @param {string} [id]
  * @return {GoogleSpreadsheet}
  */
-async function getGoogleDoc(id) {
+async function getGoogleDoc(id=SHEET_ID) {
     const doc = new GoogleSpreadsheet(id);
 
     await doc.useServiceAccountAuth(CREDENTIALS);
@@ -43,7 +44,13 @@ async function getSheetDataAsObject(doc, sheetTitle) {
             obj[key] = row[key];
         });
 
-        return obj;
+        return _.mapValues(obj, (value) => {
+            if (value === '') return value;
+            if (value === 'TRUE') return true;
+            if (value === 'FALSE') return false;
+            if (!_.isNaN(Number(value))) return Number(value);
+            return value;
+        });
     });
 
     return plainRows;
