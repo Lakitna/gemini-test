@@ -43,3 +43,4 @@ schemas/output
 e2e/**/_result
 
 google-credentials.json
+secrets.json
