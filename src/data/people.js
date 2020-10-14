@@ -18,9 +18,6 @@ async function getPeople(teams) {
     people.forEach((person) => {
         person.refereeCapabilities = teamCode.match(person.refereeCapabilities, teamCodes);
         person.activeDuring = teamCode.match(person.activeDuring, teamCodes);
-
-        // TODO: Seed randomness
-        person.random = Math.random();
     });
     return people;
 }

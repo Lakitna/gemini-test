@@ -18,6 +18,9 @@ async function schedule() {
     const teams = await teamService.getTeams();
     const people = await peopleService.getPeople(teams);
     const games = await gameService.getGames();
+    const seed = _.get(config, 'random.seed') || Math.random();
+    console.log(`config.random.seed: ${seed}`);
+    const random = seedrandom(seed);
 
     // A person gets a schedule based on `games`
     people.forEach((person) => {
@@ -32,6 +35,7 @@ async function schedule() {
                     new Date(game.scheduleStart.getTime() - scheduleBuffer),
                     new Date(game.scheduleEnd.getTime() + scheduleBuffer));
             });
+        person.random = random();
     });
 
     games.filter((game) => game.needsReferee)
