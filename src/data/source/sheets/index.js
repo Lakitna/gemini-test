@@ -10,12 +10,11 @@ const CREDENTIALS = require('../../../../google-credentials.json');
  */
 async function getGoogleDoc(id=SHEET_ID) {
     const doc = new GoogleSpreadsheet(id);
-
     await doc.useServiceAccountAuth(CREDENTIALS);
     await doc.loadInfo();
     return doc;
 }
-exports.getGoogleDoc = getGoogleDoc;
+exports.getGoogleDoc = _.memoize(getGoogleDoc);
 
 /**
  * @param {GoogleSpreadsheet} doc
