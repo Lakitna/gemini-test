@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const dayjs = require('dayjs');
 
 const sportlink = require('./source/sportlink');
 const teamCode = require('./util/team-code');
@@ -6,28 +7,58 @@ const teamCode = require('./util/team-code');
 /**
  * @return {Object[]}
  */
-async function getGames() {
+async function getGames(config) {
     const games = await sportlink('programma');
 
     games.forEach((game) => {
-        game.dateString = game.wedstrijddatum.split('T')[0];
-        game.wedstrijddatum = new Date(game.wedstrijddatum.split('+')[0] + 'Z');
-        game.needsReferee = (game.teamnaam === game.thuisteam);
+        game.home = (game.teamnaam === game.thuisteam)
+        game.needsReferee = game.home;
         game.teamCode = teamCode.get(game.teamnaam);
 
-        if (_.isEmpty(game.vertrektijd)) {
-            game.scheduleStart = new Date(`${game.dateString}T${game.aanvangstijd}Z`);
-            game.scheduleEnd = new Date(game.scheduleStart.getTime() + 70 * 60*1000);
-        }
-        else {
-            const leaveTime = new Date(`${game.dateString}T${game.vertrektijd}Z`);
-            const startTime = new Date(`${game.dateString}T${game.aanvangstijd}Z`);
-            const travelTime = startTime.getTime() - leaveTime.getTime();
-
-            game.scheduleStart = leaveTime;
-            game.scheduleEnd = new Date(startTime.getTime() + 70 * 60*1000 + travelTime);
-        }
+        game.wedstrijddatum = dayjs(game.wedstrijddatum);
+        game.startDateTime = setTime(game.wedstrijddatum, game.aanvangstijd);
+        game.leaveDateTime = game.home ? null : setTime(game.wedstrijddatum, game.vertrektijd);
+        game.event = getGameEvent(game, config);
     });
     return games;
 }
 exports.getGames = _.memoize(getGames);
+
+
+function setTime(datetime, timeString) {
+    const split = timeString.split(':');
+    for (let i=0; i<4; i++) {
+        split[i] = split[i] || 0;
+    }
+
+    return datetime
+        .set('hour', split[0])
+        .set('minute', split[1])
+        .set('second', split[2])
+        .set('millisecond', split[3]);
+}
+
+
+function getGameEvent(game, config) {
+    let travelDuration = 0;
+    if (!game.home) {
+        if (_.isNull(game.leaveDateTime)) {
+            throw new Error(`No leave time had been defined for match: ${game.wedstrijd}`);
+        }
+        travelDuration = game.startDateTime - game.leaveDateTime;
+    }
+
+    const scheduleStart = game.startDateTime
+        .subtract(travelDuration, 'millisecond')
+        .subtract(config.schedule.game.buffer.before, 'minute');
+    const scheduleEnd = game.startDateTime
+        .add(config.schedule.game.duration, 'minute')
+        .add(config.schedule.game.buffer.after, 'minute')
+        .add(travelDuration, 'millisecond');
+
+    return {
+        title: game.wedstrijd,
+        start: scheduleStart,
+        end: scheduleEnd,
+    };
+}
