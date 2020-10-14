@@ -1,8 +1,8 @@
 const Event = require('./event');
 
-class Schedule {
+class Schedule extends Array {
     constructor() {
-        this.events = [];
+        super();
     }
 
     /**
@@ -11,17 +11,16 @@ class Schedule {
      * @param {Date} end
      * @return {Schedule}
      */
-    add(name, start, end) {
-        this.events.push(new Event(name, start, end));
+    add(title, start, end) {
+        this.push(new Event(title, start, end));
         return this;
     }
 
-    isAvailable(start, end) {
+    isAvailable(newEvent) {
         let available = true;
 
-        this.events.forEach((event) => {
-            // TODO: Check halfway time?
-            if (event.inside(start) || event.inside(end)) {
+        this.forEach((event) => {
+            if (event.overlap(newEvent)) {
                 available = false;
             }
         });
