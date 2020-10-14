@@ -1,66 +1,43 @@
 const _ = require('lodash');
+const seedrandom = require('seedrandom');
+const minimatch = require('minimatch');
 
+const configService = require('../data/config');
 const peopleService = require('../data/people');
 const teamService = require('../data/teams');
 const gameService = require('../data/games');
-const { Schedule } = require('./schedule');
 
-// TODO: Move to config sheet
-const scheduleBuffer = 5 * 60 * 1000; // 5 minutes
-// TODO: Move to config sheet
-// TODO: Make teamCodePattern based? S*=10,A*=5,B*=5,...
-const REFEREE_POINTS = 5;
+const { Schedule, Event } = require('./schedule');
 
 /**
  *
  */
 async function schedule() {
+    console.log('Gathering data...');
+    const config = await configService.getConfig();
     const teams = await teamService.getTeams();
     const people = await peopleService.getPeople(teams);
-    const games = await gameService.getGames();
+    let games = await gameService.getGames(config);
+
     const seed = _.get(config, 'random.seed') || Math.random();
     console.log(`config.random.seed: ${seed}`);
     const random = seedrandom(seed);
 
-    // A person gets a schedule based on `games`
+    games.forEach((game) => {
+        game.random = random();
+        game.event = new Event(game.event);
+    });
+    // We're shuffeling the games here to make sure that those who start the process with points
+    // have the effect of it being spread out over the entire season.
+    games = _.sortBy(games, ['random']);
+
     people.forEach((person) => {
-        person.schedule = new Schedule();
-        games
-            .filter((game) => {
-                return person.activeDuring.includes(game.teamCode);
-            })
-            .forEach((game) => {
-                person.schedule.add(
-                    game.wedstrijd,
-                    new Date(game.scheduleStart.getTime() - scheduleBuffer),
-                    new Date(game.scheduleEnd.getTime() + scheduleBuffer));
-            });
         person.random = random();
+        buildPersonalSchedule(person, games);
     });
 
-    games.filter((game) => game.needsReferee)
-        .forEach((game) => {
-            console.log(`${game.wedstrijd}:`);
-
-            // `games` that need a ref get a list of potential referees based on capabilities
-            game.potentialReferees = people.filter((person) => {
-                return person.refereeCapabilities.includes(game.teamCode);
-            });
-            console.log(`  ${game.potentialReferees.length} capable referees.`);
-
-            // `games` filter potential referees based on persons schedule
-            game.potentialReferees = game.potentialReferees.filter((person) => {
-                return person.schedule.isAvailable(game.scheduleStart, game.scheduleEnd);
-            });
-            console.log(`  ${game.potentialReferees.length} available referees.`);
-
-            // `games` get assigned available referee with the lowest points. Randomness used as
-            // a tie breaker.
-            game.referee = _.first(_.sortBy(game.potentialReferees, ['points', 'random']));
-            game.referee.points += REFEREE_POINTS;
-            console.log(`  Referee: ${game.referee.fullName}.`);
-        });
-
+    assignReferees(games, people, config);
+    // assignBar(games, people, config);
 
     console.log('-'.repeat(50));
     people.forEach((person) => {
@@ -68,3 +45,65 @@ async function schedule() {
     });
 }
 exports.schedule = schedule;
+
+
+/**
+ * @param {Object[]} person
+ * @param {Object[]} games
+ */
+function buildPersonalSchedule(person, games) {
+    person.schedule = new Schedule();
+    games.forEach((game) => {
+        if (person.activeDuring.includes(game.teamCode)) {
+            person.schedule.add(game.event);
+        }
+    });
+}
+
+/**
+ * @param {Object[]} games
+ * @param {Object[]} people
+ * @param {Object} config
+ */
+function assignReferees(games, people, config) {
+    // TODO: Make sure a person does not have to referee multiple matches on one day
+    games
+        .filter((game) => game.needsReferee)
+        .forEach((game) => {
+            console.log(`${game.wedstrijd}:`);
+
+            game.potentialReferees = people.filter((person) => {
+                return person.refereeCapabilities.includes(game.teamCode);
+            });
+            console.log(`  ${game.potentialReferees.length} capable referees.`);
+
+            game.potentialReferees = game.potentialReferees.filter((person) => {
+                return person.schedule.isAvailable(game.event);
+            });
+            console.log(`  ${game.potentialReferees.length} available referees.`);
+
+            // `games` get assigned the available referee with the lowest points.
+            // Seeded randomness used as a tie breaker. This prevents scheduling side
+            // effect patterns from emerging across seasons.
+            game.referee = _.first(_.sortBy(game.potentialReferees, ['points', 'random']));
+            game.referee.points += gamePoints(game, config);
+            game.referee.schedule.add(game.event);
+            console.log(`  Referee: ${game.referee.fullName}.`);
+        });
+}
+
+function gamePoints(game, config) {
+    const matchingPatterns = _.keys(config.points.referee)
+        .filter((pattern) => {
+            return minimatch(game.teamCode, pattern);
+        })
+        .sort()
+        .reverse();
+
+    if (matchingPatterns.length === 0) {
+        throw new Error(`Could not find a matching pattern for '${game.teamCode}'. `
+            + `Did you get rid of the default?`);
+    }
+
+    return config.points.referee[_.first(matchingPatterns)];
+}
