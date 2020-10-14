@@ -26,7 +26,13 @@ exports.get = getTeamCode;
  * @return {string[]}
  */
 function matchTeamCodes(codePatterns, teamCodes) {
-    const definitions = codePatterns.split(/[,;]/g);
+    if (_.isEmpty(codePatterns)) return [];
+    const definitions = codePatterns.split(/[,;]/g)
+        .map((pattern) => {
+            return exports.toPattern(pattern);
+        })
+        .filter((pattern) => !_.isEmpty(pattern));
+
     const codes = teamCodes.filter((code) => {
         const match = definitions.find((definition) => {
             return minimatch(code, definition);
@@ -36,3 +42,16 @@ function matchTeamCodes(codePatterns, teamCodes) {
     return [...new Set(codes)];
 }
 exports.match = matchTeamCodes;
+
+/**
+ * @param {string} string
+ * @return {string}
+ */
+function toPattern(string) {
+    string = string.trim().toUpperCase();
+    if (/^[A-Z]$/.test(string)) {
+        string += '*';
+    }
+    return string;
+}
+exports.toPattern = toPattern;
