@@ -2,17 +2,19 @@ const _ = require('lodash');
 const dayjs = require('dayjs');
 
 class Event {
-    constructor(title, start, end) {
+    constructor(title, start, end, game) {
         if (_.isObject(title)) {
             start = title.start;
             end = title.end;
             title = title.title;
+            game = title.game;
         }
 
         this.title = title;
         this.start = dayjs(start);
         this.end = dayjs(end);
         this.duration = this.end - this.start;
+        this.game = game;
     }
 
     outside(dateTime) {

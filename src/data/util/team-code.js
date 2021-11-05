@@ -8,7 +8,7 @@ function getTeamCode(teamName) {
     const match = teamName.match(/\s(\w?\d+)$/i);
 
     if (_.isNull(match)) {
-        console.warn(`Could not find a team number for '${name}'.`);
+        console.warn(`Could not find a team number for '${teamName}'.`);
         return '';
     }
 

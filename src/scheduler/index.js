@@ -25,7 +25,7 @@ async function schedule() {
 
     games.forEach((game) => {
         game.random = random();
-        game.event = new Event(game.event);
+        game.event = new Event(game.event.title, game.event.start, game.event.end, game);
     });
     // We're shuffeling the games here to make sure that those who start the process with points
     // have the effect of it being spread out over the entire season.
@@ -66,21 +66,35 @@ function buildPersonalSchedule(person, games) {
  * @param {Object} config
  */
 function assignReferees(games, people, config) {
-    // TODO: Make sure a person does not have to referee multiple matches on one day
     games
         .filter((game) => game.needsReferee)
         .forEach((game) => {
             console.log(`${game.wedstrijd}:`);
 
-            game.potentialReferees = people.filter((person) => {
-                return person.refereeCapabilities.includes(game.teamCode);
-            });
+            game.potentialReferees = people
+                .filter((person) => {
+                    return person.refereeCapabilities.includes(game.teamCode);
+                })
             console.log(`  ${game.potentialReferees.length} capable referees.`);
 
-            game.potentialReferees = game.potentialReferees.filter((person) => {
-                return person.schedule.isAvailable(game.event);
-            });
+            game.potentialReferees = game.potentialReferees
+                .filter((person) => {
+                    // Don't pick someone who will be active during (part of) the game.
+                    return person.schedule.isAvailable(game.event);
+                })
+                .filter((person) => {
+                    // Don't pick someone who is already a ref for another game that day.
+                    return person.schedule.some((event) => {
+                        return event.game.datum === game.datum;
+                    });
+                });
+
             console.log(`  ${game.potentialReferees.length} available referees.`);
+            if (game.potentialReferees.length === 0) {
+                console.warn(`  !! Can'f find a referee !!`);
+                game.referee = null;
+                return;
+            }
 
             // `games` get assigned the available referee with the lowest points.
             // Seeded randomness used as a tie breaker. This prevents scheduling side

@@ -9,10 +9,16 @@ class Schedule extends Array {
      * @param {string} name
      * @param {Date} start
      * @param {Date} end
+     * @param {Object} game
      * @return {Schedule}
      */
-    add(title, start, end) {
-        this.push(new Event(title, start, end));
+    add(title, start, end, game) {
+        if (title instanceof Event) {
+            this.push(title);
+            return this;
+        }
+
+        this.push(new Event(title, start, end, game));
         return this;
     }
 

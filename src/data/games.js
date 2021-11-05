@@ -60,5 +60,6 @@ function getGameEvent(game, config) {
         title: game.wedstrijd,
         start: scheduleStart,
         end: scheduleEnd,
+        game: game,
     };
 }
