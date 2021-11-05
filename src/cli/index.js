@@ -1,5 +1,4 @@
 #! /usr/bin/env node
-require('make-promises-safe');
 const commander = require('commander');
 
 const scheduler = require('../scheduler');
