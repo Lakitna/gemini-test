@@ -17,6 +17,7 @@ async function getConfig() {
 
     const config = unflatten(flatConfig);
     config.points.referee = parsePatternedConfig(config.points.referee);
+    config.schedule.game.duration = parsePatternedConfig(config.schedule.game.duration);
     return config;
 }
 exports.getConfig = _.memoize(getConfig);
@@ -26,8 +27,19 @@ exports.getConfig = _.memoize(getConfig);
  * @return {Object}
  */
 function parsePatternedConfig(object) {
-    return _.mapKeys(object, (_, key) => {
+    const mapped = _.mapKeys(object, (_, key) => {
         if (key === 'default') return '*';
         return teamCode.toPattern(key);
     });
+
+    if (_.isUndefined(mapped['*'])) {
+        return mapped;
+    }
+
+    return _.mapValues(mapped, (value) => {
+        if (!value) {
+            return mapped['*'];
+        }
+        return value;
+    })
 }

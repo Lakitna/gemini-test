@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const dayjs = require('dayjs');
+const minimatch = require('minimatch');
 
 const sportlink = require('./source/sportlink');
 const teamCode = require('./util/team-code');
@@ -51,8 +52,9 @@ function getGameEvent(game, config) {
     const scheduleStart = game.startDateTime
         .subtract(travelDuration, 'millisecond')
         .subtract(config.schedule.game.buffer.before, 'minute');
+    const gameDuration = getPatternedValue(config.schedule.game.duration, game.teamCode);
     const scheduleEnd = game.startDateTime
-        .add(config.schedule.game.duration, 'minute')
+        .add(gameDuration, 'minute')
         .add(config.schedule.game.buffer.after, 'minute')
         .add(travelDuration, 'millisecond');
 
@@ -62,4 +64,19 @@ function getGameEvent(game, config) {
         end: scheduleEnd,
         game: game,
     };
+}
+
+function getPatternedValue(patternedConfig, pattern) {
+    const matchingPatterns = _.keys(patternedConfig)
+        .filter((patt) => {
+            return minimatch(pattern, patt);
+        })
+        .sort()
+        .reverse();
+
+    if (matchingPatterns.length === 0) {
+        throw new Error(`Coult not find a match for '${pattern}' in patterns `
+            + `['${_.keys(patternedConfig).join(`', '`)}']`);
+    }
+    return patternedConfig[matchingPatterns[0]];
 }
