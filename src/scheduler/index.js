@@ -43,6 +43,13 @@ async function schedule() {
     people.forEach((person) => {
         console.log(`${person.fullName}: ${person.points}pt`);
     });
+
+    games = _.sortBy(games, ['event.start'])
+    games.forEach((game) => {
+        console.log(game.event.title);
+    })
+
+    await gameService.setGames(games);
 }
 exports.schedule = schedule;
 

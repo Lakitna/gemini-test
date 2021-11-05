@@ -3,6 +3,7 @@ const dayjs = require('dayjs');
 const minimatch = require('minimatch');
 
 const sportlink = require('./source/sportlink');
+const sheets = require('./source/sheets');
 const teamCode = require('./util/team-code');
 
 /**
@@ -24,6 +25,25 @@ async function getGames(config) {
     return games;
 }
 exports.getGames = _.memoize(getGames);
+
+
+async function setGames(games) {
+    const doc = await sheets.getGoogleDoc();
+
+    const rows = games.map((game) => {
+        return {
+            homeTeam: game.thuisteam,
+            awayTeam: game.uitteam,
+            isHomeGame: game.home,
+            needsReferee: game.needsReferee,
+            referee: _.get(game, 'referee.fullName', false),
+            start: game.startDateTime.toISOString(),
+        }
+    })
+
+    return sheets.replaceSheetData(doc, 'Game schedule', rows);
+}
+exports.setGames = setGames
 
 
 function setTime(datetime, timeString) {
