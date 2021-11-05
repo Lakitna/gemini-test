@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { GoogleSpreadsheet, GoogleSpreadsheetRow } = require('google-spreadsheet');
+const { GoogleSpreadsheet, GoogleSpreadsheetRow, GoogleSpreadsheetWorksheet } = require('google-spreadsheet');
 
 const SHEET_ID = '1tQLGSWgCOzJ5oz3unNpYD9b1GEh6ut24GnH0MlW1hJs';
 const CREDENTIALS = require('../../../../google-credentials.json');
@@ -26,6 +26,19 @@ async function getSheetData(doc, sheetTitle) {
     return sheet.getRows();
 }
 exports.getSheetData = getSheetData;
+
+/**
+ * @param {GoogleSpreadsheet} doc
+ * @param {string} sheetTitle
+ * @param {object[]} data
+ */
+async function replaceSheetData(doc, sheetTitle, data) {
+    const sheet = doc.sheetsByTitle[sheetTitle];
+    await sheet.clear();
+    await sheet.setHeaderRow(_.keys(data[0]));
+    await sheet.addRows(data);
+}
+exports.replaceSheetData = replaceSheetData;
 
 /**
  * @param {GoogleSpreadsheet} doc
